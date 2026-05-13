@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Any
 from uuid import UUID
 
@@ -36,11 +37,12 @@ def _compute_project_metadata(projects: list[Any]) -> list[ProjectSummary]:
         if wd not in stats:
             stats[wd] = {"count": 0, "last_updated": None}
         stats[wd]["count"] += 1
-        if session.last_updated:
-            if stats[wd]["last_updated"] is None or session.last_updated > stats[wd]["last_updated"]:
-                stats[wd]["last_updated"] = session.last_updated
+        if session.last_updated and (
+            stats[wd]["last_updated"] is None or session.last_updated > stats[wd]["last_updated"]
+        ):
+            stats[wd]["last_updated"] = session.last_updated
 
-    result = []
+    result: list[ProjectSummary] = []
     for project in projects:
         stat = stats.get(project.path, {"count": 0, "last_updated": None})
         result.append(
@@ -58,7 +60,10 @@ def _compute_project_metadata(projects: list[Any]) -> list[ProjectSummary]:
         )
 
     # Sort by last_updated desc (most active first)
-    result.sort(key=lambda p: p.last_updated or p.created_at, reverse=True)
+    def _sort_key(p: ProjectSummary) -> datetime:
+        return p.last_updated or p.created_at
+
+    result.sort(key=_sort_key, reverse=True)
     return result
 
 

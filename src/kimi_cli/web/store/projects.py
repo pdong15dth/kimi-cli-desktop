@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 from uuid import UUID, uuid4
 
 from kimi_cli.web.models import CreateProjectRequest, Project, UpdateProjectRequest
@@ -25,7 +25,7 @@ def _load_raw() -> list[dict[str, Any]]:
         data = json.loads(PROJECTS_FILE.read_text(encoding="utf-8"))
         if not isinstance(data, list):
             return []
-        return data
+        return cast(list[dict[str, Any]], data)
     except (json.JSONDecodeError, OSError):
         return []
 
@@ -119,7 +119,7 @@ def create_project(request: CreateProjectRequest) -> Project:
 def update_project(project_id: UUID, request: UpdateProjectRequest) -> Project | None:
     """Update an existing project."""
     rows = _load_raw()
-    for i, row in enumerate(rows):
+    for _i, row in enumerate(rows):
         if UUID(row["project_id"]) == project_id:
             if request.name is not None:
                 row["name"] = request.name

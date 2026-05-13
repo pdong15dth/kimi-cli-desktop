@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any, Literal
 from uuid import UUID
 
@@ -105,8 +105,8 @@ class Project(BaseModel):
     name: str = Field(..., description="Display name")
     path: str = Field(..., description="Absolute folder path")
     description: str | None = Field(default=None, description="Optional description")
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     settings: dict[str, Any] = Field(default_factory=dict, description="Project-level settings")
 
 
@@ -123,7 +123,9 @@ class CreateProjectRequest(BaseModel):
     """Create a new project."""
 
     path: str = Field(..., description="Absolute folder path")
-    name: str | None = Field(default=None, description="Optional display name (defaults to folder basename)")
+    name: str | None = Field(
+        default=None, description="Optional display name (defaults to folder basename)"
+    )
     description: str | None = Field(default=None, description="Optional description")
     create_dir: bool = Field(default=False, description="Create the folder if it does not exist")
     settings: dict[str, Any] = Field(default_factory=dict)
