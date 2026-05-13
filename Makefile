@@ -36,6 +36,13 @@ vis-back: ## Start vis backend with uvicorn (reload enabled).
 vis-front: ## Start vis frontend (vite dev server).
 	@npm --prefix vis run dev
 
+# for kimi desktop development
+.PHONY: desktop-dev desktop-build
+desktop-dev: ## Start Kimi Code Desktop in development mode.
+	@cd apps/desktop && cargo tauri dev
+desktop-build: ## Build Kimi Code Desktop for release.
+	@cd apps/desktop && cargo tauri build
+
 .PHONY: format format-kimi-cli format-kosong format-pykaos format-kimi-sdk format-web
 format: format-kimi-cli format-kosong format-pykaos format-kimi-sdk format-web ## Auto-format all workspace packages.
 format-kimi-cli: ## Auto-format Kimi Code CLI sources with ruff.

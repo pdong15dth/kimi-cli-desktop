@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Literal
+from typing import Any, Literal
 from uuid import UUID
 
 from pydantic import BaseModel, Field
@@ -96,3 +96,42 @@ class GenerateTitleResponse(BaseModel):
     """Generate title response."""
 
     title: str
+
+
+class Project(BaseModel):
+    """A user-managed project (workspace / folder)."""
+
+    project_id: UUID = Field(..., description="Project unique ID")
+    name: str = Field(..., description="Display name")
+    path: str = Field(..., description="Absolute folder path")
+    description: str | None = Field(default=None, description="Optional description")
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    settings: dict[str, Any] = Field(default_factory=dict, description="Project-level settings")
+
+
+class ProjectSummary(Project):
+    """Project with computed session metadata."""
+
+    session_count: int = Field(default=0, description="Number of sessions in this project")
+    last_updated: datetime | None = Field(
+        default=None, description="Last activity across all project sessions"
+    )
+
+
+class CreateProjectRequest(BaseModel):
+    """Create a new project."""
+
+    path: str = Field(..., description="Absolute folder path")
+    name: str | None = Field(default=None, description="Optional display name (defaults to folder basename)")
+    description: str | None = Field(default=None, description="Optional description")
+    create_dir: bool = Field(default=False, description="Create the folder if it does not exist")
+    settings: dict[str, Any] = Field(default_factory=dict)
+
+
+class UpdateProjectRequest(BaseModel):
+    """Update an existing project."""
+
+    name: str | None = Field(default=None, min_length=1, max_length=200)
+    description: str | None = Field(default=None)
+    settings: dict[str, Any] | None = Field(default=None)

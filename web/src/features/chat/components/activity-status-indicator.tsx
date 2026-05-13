@@ -202,7 +202,7 @@ export const ActivityStatusIndicator = memo(function ActivityStatusIndicatorComp
 }: ActivityStatusIndicatorProps): ReactElement {
   const { status, description } = activity;
   const isActive = status !== "idle";
-  const showSpinner = status === "processing";
+  const showSpinner = status === "processing" || status === "connecting";
 
   return (
     <output
@@ -313,6 +313,11 @@ export const ToolbarActivityIndicator = memo(function ToolbarActivityIndicatorCo
         />
       </div>
 
+
+      {/* Spinner for active states */}
+      {isActive && (
+        <Loader size={12} className="text-muted-foreground animate-spin" />
+      )}
 
       {/* Description text with animated transitions */}
       <AnimatePresence mode="wait">

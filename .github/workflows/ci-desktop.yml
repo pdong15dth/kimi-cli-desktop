@@ -1,0 +1,54 @@
+name: CI (desktop)
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/**"
+      - "apps/desktop/**"
+      - "web/**"
+      - "src/kimi_cli/web/**"
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/**"
+      - "apps/desktop/**"
+      - "web/**"
+      - "src/kimi_cli/web/**"
+
+env:
+  NO_COLOR: "1"
+  TERM: dumb
+
+jobs:
+  check:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-action@stable
+
+      - name: Install dependencies (web)
+        run: cd web && npm ci
+
+      - name: Install dependencies (desktop)
+        run: cd apps/desktop && npm ci
+
+      - name: Typecheck web UI
+        run: cd web && npm run typecheck
+
+      - name: Check Tauri app
+        run: cd apps/desktop/src-tauri && cargo check
+
+      - name: Build web UI
+        run: cd web && npm run build
+
+      - name: Build Tauri app
+        run: cd apps/desktop && npm run build

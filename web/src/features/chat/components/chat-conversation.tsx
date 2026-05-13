@@ -114,7 +114,7 @@ export function ChatConversation({
       {shouldShowEmptyState ? (
         isLoadingResponse ? (
           <ConversationEmptyState
-            description=""
+            description={isStartingEnvironment ? "Setting up your workspace" : "The AI is getting ready to respond"}
             icon={<Loader2Icon className="size-6 animate-spin text-primary" />}
             title={isStartingEnvironment ? "Starting environment..." : "Connecting to session..."}
           />
@@ -190,6 +190,29 @@ export function ChatConversation({
             onAtBottomChange={setIsAtBottom}
             onForkSession={onForkSession}
           />
+
+          {/* Typing indicator when awaiting first response */}
+          {status === "submitted" && messages.length > 0 && (
+            <div className="flex items-start gap-3 px-4 py-3">
+              <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary/10">
+                <SparklesIcon className="size-4 text-primary" />
+              </div>
+              <div className="flex items-center gap-1.5 rounded-2xl bg-muted px-4 py-3">
+                <span
+                  className="size-2 animate-bounce rounded-full bg-muted-foreground"
+                  style={{ animationDelay: "0ms" }}
+                />
+                <span
+                  className="size-2 animate-bounce rounded-full bg-muted-foreground"
+                  style={{ animationDelay: "150ms" }}
+                />
+                <span
+                  className="size-2 animate-bounce rounded-full bg-muted-foreground"
+                  style={{ animationDelay: "300ms" }}
+                />
+              </div>
+            </div>
+          )}
         </div>
       )}
 

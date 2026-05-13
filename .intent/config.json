@@ -1,0 +1,244 @@
+{
+  "scripts": [
+    {
+      "name": "help",
+      "command": "make help",
+      "mode": "command",
+      "category": "other"
+    },
+    {
+      "name": "install-prek",
+      "command": "make install-prek",
+      "mode": "command",
+      "category": "other"
+    },
+    {
+      "name": "prepare",
+      "command": "make prepare",
+      "mode": "command",
+      "category": "other"
+    },
+    {
+      "name": "prepare-build",
+      "command": "make prepare-build",
+      "mode": "command",
+      "category": "build"
+    },
+    {
+      "name": "web-back",
+      "command": "make web-back",
+      "mode": "command",
+      "category": "other"
+    },
+    {
+      "name": "web-front",
+      "command": "make web-front",
+      "mode": "command",
+      "category": "other"
+    },
+    {
+      "name": "vis-back",
+      "command": "make vis-back",
+      "mode": "command",
+      "category": "other"
+    },
+    {
+      "name": "vis-front",
+      "command": "make vis-front",
+      "mode": "command",
+      "category": "other"
+    },
+    {
+      "name": "format",
+      "command": "make format",
+      "mode": "command",
+      "category": "format"
+    },
+    {
+      "name": "format-kimi-cli",
+      "command": "make format-kimi-cli",
+      "mode": "command",
+      "category": "format"
+    },
+    {
+      "name": "format-kosong",
+      "command": "make format-kosong",
+      "mode": "command",
+      "category": "format"
+    },
+    {
+      "name": "format-pykaos",
+      "command": "make format-pykaos",
+      "mode": "command",
+      "category": "format"
+    },
+    {
+      "name": "format-kimi-sdk",
+      "command": "make format-kimi-sdk",
+      "mode": "command",
+      "category": "format"
+    },
+    {
+      "name": "format-web",
+      "command": "make format-web",
+      "mode": "command",
+      "category": "format"
+    },
+    {
+      "name": "check",
+      "command": "make check",
+      "mode": "command",
+      "category": "typecheck"
+    },
+    {
+      "name": "check-kimi-cli",
+      "command": "make check-kimi-cli",
+      "mode": "command",
+      "category": "other"
+    },
+    {
+      "name": "check-kosong",
+      "command": "make check-kosong",
+      "mode": "command",
+      "category": "other"
+    },
+    {
+      "name": "check-pykaos",
+      "command": "make check-pykaos",
+      "mode": "command",
+      "category": "other"
+    },
+    {
+      "name": "check-kimi-sdk",
+      "command": "make check-kimi-sdk",
+      "mode": "command",
+      "category": "other"
+    },
+    {
+      "name": "check-web",
+      "command": "make check-web",
+      "mode": "command",
+      "category": "other"
+    },
+    {
+      "name": "test",
+      "command": "make test",
+      "mode": "command",
+      "category": "test"
+    },
+    {
+      "name": "test-kimi-cli",
+      "command": "make test-kimi-cli",
+      "mode": "command",
+      "category": "test"
+    },
+    {
+      "name": "test-kosong",
+      "command": "make test-kosong",
+      "mode": "command",
+      "category": "test"
+    },
+    {
+      "name": "test-pykaos",
+      "command": "make test-pykaos",
+      "mode": "command",
+      "category": "test"
+    },
+    {
+      "name": "test-kimi-sdk",
+      "command": "make test-kimi-sdk",
+      "mode": "command",
+      "category": "test"
+    },
+    {
+      "name": "build",
+      "command": "make build",
+      "mode": "command",
+      "category": "build"
+    },
+    {
+      "name": "build-kimi-cli",
+      "command": "make build-kimi-cli",
+      "mode": "command",
+      "category": "build"
+    },
+    {
+      "name": "build-kosong",
+      "command": "make build-kosong",
+      "mode": "command",
+      "category": "build"
+    },
+    {
+      "name": "build-pykaos",
+      "command": "make build-pykaos",
+      "mode": "command",
+      "category": "build"
+    },
+    {
+      "name": "build-kimi-sdk",
+      "command": "make build-kimi-sdk",
+      "mode": "command",
+      "category": "build"
+    },
+    {
+      "name": "build-web",
+      "command": "make build-web",
+      "mode": "command",
+      "category": "build"
+    },
+    {
+      "name": "build-vis",
+      "command": "make build-vis",
+      "mode": "command",
+      "category": "build"
+    },
+    {
+      "name": "build-bin",
+      "command": "make build-bin",
+      "mode": "command",
+      "category": "build"
+    },
+    {
+      "name": "build-bin-onedir",
+      "command": "make build-bin-onedir",
+      "mode": "command",
+      "category": "build"
+    },
+    {
+      "name": "ai-test",
+      "command": "make ai-test",
+      "mode": "command",
+      "category": "test"
+    },
+    {
+      "name": "gen-changelog",
+      "command": "make gen-changelog",
+      "mode": "command",
+      "category": "other"
+    },
+    {
+      "name": "gen-docs",
+      "command": "make gen-docs",
+      "mode": "command",
+      "category": "other"
+    },
+    {
+      "name": "lint",
+      "command": "ruff check .",
+      "mode": "command",
+      "category": "lint"
+    },
+    {
+      "name": "python:format",
+      "command": "ruff format .",
+      "mode": "command",
+      "category": "format"
+    },
+    {
+      "name": "typecheck",
+      "command": "pyright",
+      "mode": "command",
+      "category": "typecheck"
+    }
+  ]
+}

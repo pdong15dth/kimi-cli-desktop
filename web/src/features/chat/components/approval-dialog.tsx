@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Kbd } from "@/components/ui/kbd";
 import { cn } from "@/lib/utils";
+import { showTauriNotification } from "@/lib/tauri";
 import type { ApprovalResponseDecision } from "@/hooks/wireTypes";
 import type { LiveMessage } from "@/hooks/types";
 
@@ -48,6 +49,7 @@ export function ApprovalDialog({
   // Reset feedback state when the pending approval changes
   const currentApprovalId = pendingApproval?.approval?.id;
   const prevApprovalIdRef = useRef(currentApprovalId);
+  const notifiedApprovalIdRef = useRef<string | null>(null);
   if (prevApprovalIdRef.current !== currentApprovalId) {
     prevApprovalIdRef.current = currentApprovalId;
     // Always clear stale feedback text, not just when feedbackMode is active.
@@ -57,6 +59,21 @@ export function ApprovalDialog({
       setFeedbackText("");
     }
   }
+
+  // Show native desktop notification for new approval requests
+  useEffect(() => {
+    if (currentApprovalId && currentApprovalId !== notifiedApprovalIdRef.current) {
+      notifiedApprovalIdRef.current = currentApprovalId;
+      showTauriNotification(
+        "Approval Requested",
+        pendingApproval?.approval?.action
+          ? `Action: ${pendingApproval.approval.action}`
+          : "An approval is waiting for your response.",
+      ).catch(() => {
+        // ignore notification errors
+      });
+    }
+  }, [currentApprovalId, pendingApproval]);
 
   const handleResponse = useCallback(
     async (decision: ApprovalResponseDecision, reason?: string) => {

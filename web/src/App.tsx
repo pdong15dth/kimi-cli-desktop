@@ -8,6 +8,10 @@ import { ResizablePanel, ResizablePanelGroup } from "./components/ui/resizable";
 import { ChatWorkspaceContainer } from "./features/chat/chat-workspace-container";
 import { SessionsSidebar } from "./features/sessions/sessions";
 import { CreateSessionDialog } from "./features/sessions/create-session-dialog";
+import { ProjectDashboard } from "./features/projects/project-dashboard";
+import { ProjectDetail } from "./features/projects/project-detail";
+import { ProjectSettingsDialog } from "./features/projects/project-settings-dialog";
+import { useProjects } from "./hooks/useProjects";
 import { Toaster } from "./components/ui/sonner";
 import { formatRelativeTime } from "./hooks/utils";
 import { useSessions } from "./hooks/useSessions";
@@ -25,6 +29,11 @@ function getSessionIdFromUrl(): string | null {
   return params.get("session");
 }
 
+function getProjectIdFromUrl(): string | null {
+  const params = new URLSearchParams(window.location.search);
+  return params.get("project");
+}
+
 /**
  * Update URL with session ID without triggering page reload
  */
@@ -34,6 +43,16 @@ function updateUrlWithSession(sessionId: string | null): void {
     url.searchParams.set("session", sessionId);
   } else {
     url.searchParams.delete("session");
+  }
+  window.history.replaceState({}, "", url.toString());
+}
+
+function updateUrlWithProject(projectId: string | null): void {
+  const url = new URL(window.location.href);
+  if (projectId) {
+    url.searchParams.set("project", projectId);
+  } else {
+    url.searchParams.delete("project");
   }
   window.history.replaceState({}, "", url.toString());
 }
@@ -50,7 +69,10 @@ function App() {
   const sidebarElementRef = useRef<HTMLDivElement | null>(null);
   const sidebarPanelRef = useRef<PanelImperativeHandle | null>(null);
   const sessionsHook = useSessions();
+  const projectsHook = useProjects();
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(getProjectIdFromUrl);
+  const [showProjectSettings, setShowProjectSettings] = useState(false);
   const [isDesktop, setIsDesktop] = useState(() => {
     if (typeof window === "undefined") {
       return true;
@@ -334,17 +356,78 @@ function App() {
     [setSearchQuery],
   );
 
+  // Project handlers
+  const handleOpenProject = useCallback((projectId: string) => {
+    setSelectedProjectId(projectId);
+    updateUrlWithProject(projectId);
+    selectSession("");
+    updateUrlWithSession(null);
+  }, [selectSession]);
+
+  const handleBackToProjects = useCallback(() => {
+    setSelectedProjectId(null);
+    updateUrlWithProject(null);
+    selectSession("");
+    updateUrlWithSession(null);
+  }, [selectSession]);
+
+  const handleCreateProject = useCallback(
+    async (path: string, name?: string, description?: string) => {
+      await projectsHook.createProject({ path, name, description, createDir: true });
+    },
+    [projectsHook],
+  );
+
+  const handleUpdateProject = useCallback(
+    async (projectId: string, name: string, description: string) => {
+      await projectsHook.updateProject(projectId, { name, description });
+    },
+    [projectsHook],
+  );
+
+  const handleDeleteProject = useCallback(
+    async (projectId: string) => {
+      const ok = await projectsHook.deleteProject(projectId);
+      if (ok && selectedProjectId === projectId) {
+        handleBackToProjects();
+      }
+    },
+    [projectsHook, selectedProjectId, handleBackToProjects],
+  );
+
+  const handleNewSessionInProject = useCallback(
+    async (projectId: string) => {
+      const project = projectsHook.projects.find((p) => p.projectId === projectId);
+      if (project) {
+        const session = await createSession(project.path);
+        if (session?.sessionId) {
+          selectSession(session.sessionId);
+          updateUrlWithSession(session.sessionId);
+        }
+      }
+    },
+    [projectsHook.projects, createSession, selectSession],
+  );
+
+  // Filter sessions by selected project
+  const projectSessions = useMemo(() => {
+    if (!selectedProjectId) return sessions;
+    const project = projectsHook.projects.find((p) => p.projectId === selectedProjectId);
+    if (!project) return sessions;
+    return sessions.filter((s) => s.workDir === project.path);
+  }, [sessions, selectedProjectId, projectsHook.projects]);
+
   // Transform Session[] to SessionSummary[] for sidebar
   const sessionSummaries = useMemo(
     () =>
-      sessions.map((session) => ({
+      projectSessions.map((session) => ({
         id: session.sessionId,
         title: session.title ?? "Untitled",
         updatedAt: formatRelativeTime(session.lastUpdated),
         workDir: session.workDir,
         lastUpdated: session.lastUpdated,
       })),
-    [sessions],
+    [projectSessions],
   );
 
   // Transform archived Session[] to SessionSummary[] for sidebar
@@ -367,24 +450,72 @@ function App() {
     [forkSession],
   );
 
-  const renderChatPanel = () => (
-    <ChatWorkspaceContainer
-      selectedSessionId={selectedSessionId}
-      currentSession={currentSession}
-      sessionDescription={currentSession?.title}
-      onSessionStatus={handleSessionStatus}
-      onStreamStatusChange={handleStreamStatusChange}
-      uploadSessionFile={uploadSessionFile}
-      onListSessionDirectory={listSessionDirectory}
-      onGetSessionFileUrl={getSessionFileUrl}
-      onGetSessionFile={getSessionFile}
-      onOpenCreateDialog={handleOpenCreateDialog}
-      onOpenSidebar={handleOpenMobileSidebar}
-      generateTitle={generateTitle}
-      onRenameSession={renameSession}
-      onForkSession={handleForkSession}
-    />
+  const currentProject = useMemo(
+    () => projectsHook.projects.find((p) => p.projectId === selectedProjectId) ?? null,
+    [projectsHook.projects, selectedProjectId],
   );
+
+  const renderChatPanel = () => {
+    // No project and no session → show Project Dashboard
+    if (!selectedSessionId && !selectedProjectId) {
+      return (
+        <ProjectDashboard
+          projects={projectsHook.projects}
+          isLoading={projectsHook.isLoading}
+          onOpenProject={(project) => handleOpenProject(project.projectId)}
+          onCreateProject={handleCreateProject}
+          onEditProject={(project) => {
+            setSelectedProjectId(project.projectId);
+            setShowProjectSettings(true);
+          }}
+          onDeleteProject={(project) => handleDeleteProject(project.projectId)}
+        />
+      );
+    }
+
+    // Project selected but no session → show Project Detail
+    if (selectedProjectId && !selectedSessionId && currentProject) {
+      return (
+        <div className="flex h-full w-full">
+          <div className="w-72 border-r border-border/60">
+            <ProjectDetail
+              project={currentProject}
+              sessions={projectSessions}
+              selectedSessionId={selectedSessionId}
+              onBack={handleBackToProjects}
+              onSelectSession={handleSelectSession}
+              onNewSession={() => handleNewSessionInProject(selectedProjectId)}
+            />
+          </div>
+          <div className="flex-1 flex items-center justify-center text-muted-foreground">
+            Select a session to start chatting
+          </div>
+        </div>
+      );
+    }
+
+    // Session selected → show Chat Workspace
+    return (
+      <ChatWorkspaceContainer
+        selectedSessionId={selectedSessionId}
+        currentSession={currentSession}
+        sessionDescription={currentSession?.title}
+        onSessionStatus={handleSessionStatus}
+        onStreamStatusChange={handleStreamStatusChange}
+        uploadSessionFile={uploadSessionFile}
+        onListSessionDirectory={listSessionDirectory}
+        onGetSessionFileUrl={getSessionFileUrl}
+        onGetSessionFile={getSessionFile}
+        onOpenCreateDialog={handleOpenCreateDialog}
+        onOpenSidebar={handleOpenMobileSidebar}
+        generateTitle={generateTitle}
+        onRenameSession={renameSession}
+        onForkSession={handleForkSession}
+      />
+    );
+  };
+
+  const showSidebar = selectedProjectId !== null || selectedSessionId !== "";
 
   return (
     <PromptInputProvider>
@@ -395,101 +526,105 @@ function App() {
               orientation="horizontal"
               className="min-h-0 flex-1 overflow-hidden"
             >
-              {/* Sidebar */}
-              <ResizablePanel
-                id="sessions"
-                collapsible
-                collapsedSize={SIDEBAR_COLLAPSED_SIZE}
-                defaultSize={SIDEBAR_DEFAULT_SIZE}
-                minSize={SIDEBAR_MIN_SIZE}
-                elementRef={sidebarElementRef}
-                panelRef={sidebarPanelRef}
-                onResize={handleSidebarResize}
-                className={cn("relative min-h-0 border-r pl-0.5 pr-2 overflow-hidden")}
-              >
-                {/* Collapsed sidebar - vertical strip with logo and expand button */}
-                <div
-                  className={cn(
-                    "absolute inset-0 flex h-full flex-col items-center py-3 transition-all duration-200 ease-in-out",
-                    isSidebarCollapsed
-                      ? "opacity-100 translate-x-0"
-                      : "opacity-0 -translate-x-2 pointer-events-none select-none",
-                  )}
-                >
-                  <a
-                    href="https://www.kimi.com/code"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="hover:opacity-80 transition-opacity"
+              {showSidebar && (
+                <>
+                  {/* Sidebar */}
+                  <ResizablePanel
+                    id="sessions"
+                    collapsible
+                    collapsedSize={SIDEBAR_COLLAPSED_SIZE}
+                    defaultSize={SIDEBAR_DEFAULT_SIZE}
+                    minSize={SIDEBAR_MIN_SIZE}
+                    elementRef={sidebarElementRef}
+                    panelRef={sidebarPanelRef}
+                    onResize={handleSidebarResize}
+                    className={cn("relative min-h-0 border-r pl-0.5 pr-2 overflow-hidden")}
                   >
-                    <img
-                      src="/logo.png"
-                      alt="Kimi"
-                      width={24}
-                      height={24}
-                      className="size-6"
-                    />
-                  </a>
-                  <button
-                    type="button"
-                    aria-label="Expand sidebar"
-                    className="mt-auto mb-1 inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-secondary/50 hover:text-foreground"
-                    onClick={handleExpandSidebar}
-                  >
-                    <PanelLeftOpen className="size-4" />
-                  </button>
-                </div>
-                {/* Expanded sidebar */}
-                <div
-                  className={cn(
-                    "absolute inset-0 flex h-full min-h-0 flex-col gap-3 transition-all duration-200 ease-in-out",
-                    isSidebarCollapsed
-                      ? "opacity-0 translate-x-2 pointer-events-none select-none"
-                      : "opacity-100 translate-x-0",
-                  )}
-                >
-                  <SessionsSidebar
-                    onDeleteSession={handleDeleteSession}
-                    onSelectSession={handleSelectSession}
-                    onRenameSession={renameSession}
-                    onArchiveSession={archiveSession}
-                    onUnarchiveSession={unarchiveSession}
-                    onBulkArchiveSessions={bulkArchiveSessions}
-                    onBulkUnarchiveSessions={bulkUnarchiveSessions}
-                    onBulkDeleteSessions={bulkDeleteSessions}
-                    onRefreshSessions={handleRefreshSessions}
-                    onRefreshArchivedSessions={refreshArchivedSessions}
-                    onLoadMoreSessions={loadMoreSessions}
-                    onLoadMoreArchivedSessions={loadMoreArchivedSessions}
-                    onOpenCreateDialog={handleOpenCreateDialog}
-                    onCreateSessionInDir={handleCreateSessionInDir}
-                    streamStatus={streamStatus}
-                    selectedSessionId={selectedSessionId}
-                    sessions={sessionSummaries}
-                    archivedSessions={archivedSessionSummaries}
-                    hasMoreSessions={hasMoreSessions}
-                    hasMoreArchivedSessions={hasMoreArchivedSessions}
-                    isLoadingMore={isLoadingMore}
-                    isLoadingMoreArchived={isLoadingMoreArchived}
-                    isLoadingArchived={isLoadingArchived}
-                    searchQuery={searchQuery}
-                    onSearchQueryChange={handleSearchQueryChange}
-                  />
-                  <div className="mt-auto flex items-center justify-between pl-2 pb-2 pr-2">
-                    <div className="flex items-center gap-2">
-                      <ThemeToggle />
-                    </div>
-                    <button
-                      type="button"
-                      aria-label="Collapse sidebar"
-                      className="inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-secondary/50 hover:text-foreground"
-                      onClick={handleCollapseSidebar}
+                    {/* Collapsed sidebar - vertical strip with logo and expand button */}
+                    <div
+                      className={cn(
+                        "absolute inset-0 flex h-full flex-col items-center py-3 transition-all duration-200 ease-in-out",
+                        isSidebarCollapsed
+                          ? "opacity-100 translate-x-0"
+                          : "opacity-0 -translate-x-2 pointer-events-none select-none",
+                      )}
                     >
-                      <PanelLeftClose className="size-4" />
-                    </button>
-                  </div>
-                </div>
-              </ResizablePanel>
+                      <a
+                        href="https://www.kimi.com/code"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="hover:opacity-80 transition-opacity"
+                      >
+                        <img
+                          src="/logo.png"
+                          alt="Kimi"
+                          width={24}
+                          height={24}
+                          className="size-6"
+                        />
+                      </a>
+                      <button
+                        type="button"
+                        aria-label="Expand sidebar"
+                        className="mt-auto mb-1 inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-secondary/50 hover:text-foreground"
+                        onClick={handleExpandSidebar}
+                      >
+                        <PanelLeftOpen className="size-4" />
+                      </button>
+                    </div>
+                    {/* Expanded sidebar */}
+                    <div
+                      className={cn(
+                        "absolute inset-0 flex h-full min-h-0 flex-col gap-3 transition-all duration-200 ease-in-out",
+                        isSidebarCollapsed
+                          ? "opacity-0 translate-x-2 pointer-events-none select-none"
+                          : "opacity-100 translate-x-0",
+                      )}
+                    >
+                      <SessionsSidebar
+                        onDeleteSession={handleDeleteSession}
+                        onSelectSession={handleSelectSession}
+                        onRenameSession={renameSession}
+                        onArchiveSession={archiveSession}
+                        onUnarchiveSession={unarchiveSession}
+                        onBulkArchiveSessions={bulkArchiveSessions}
+                        onBulkUnarchiveSessions={bulkUnarchiveSessions}
+                        onBulkDeleteSessions={bulkDeleteSessions}
+                        onRefreshSessions={handleRefreshSessions}
+                        onRefreshArchivedSessions={refreshArchivedSessions}
+                        onLoadMoreSessions={loadMoreSessions}
+                        onLoadMoreArchivedSessions={loadMoreArchivedSessions}
+                        onOpenCreateDialog={handleOpenCreateDialog}
+                        onCreateSessionInDir={handleCreateSessionInDir}
+                        streamStatus={streamStatus}
+                        selectedSessionId={selectedSessionId}
+                        sessions={sessionSummaries}
+                        archivedSessions={archivedSessionSummaries}
+                        hasMoreSessions={hasMoreSessions}
+                        hasMoreArchivedSessions={hasMoreArchivedSessions}
+                        isLoadingMore={isLoadingMore}
+                        isLoadingMoreArchived={isLoadingMoreArchived}
+                        isLoadingArchived={isLoadingArchived}
+                        searchQuery={searchQuery}
+                        onSearchQueryChange={handleSearchQueryChange}
+                      />
+                      <div className="mt-auto flex items-center justify-between pl-2 pb-2 pr-2">
+                        <div className="flex items-center gap-2">
+                          <ThemeToggle />
+                        </div>
+                        <button
+                          type="button"
+                          aria-label="Collapse sidebar"
+                          className="inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-secondary/50 hover:text-foreground"
+                          onClick={handleCollapseSidebar}
+                        >
+                          <PanelLeftClose className="size-4" />
+                        </button>
+                      </div>
+                    </div>
+                  </ResizablePanel>
+                </>
+              )}
 
               {/* Main Chat Area */}
               <ResizablePanel id="chat" className="relative min-h-0 flex justify-center flex-1">
@@ -516,8 +651,16 @@ function App() {
         fetchStartupDir={fetchStartupDir}
       />
 
+      {/* Project Settings Dialog */}
+      <ProjectSettingsDialog
+        project={currentProject}
+        open={showProjectSettings}
+        onOpenChange={setShowProjectSettings}
+        onSave={handleUpdateProject}
+      />
+
       {/* Mobile Sessions Sidebar */}
-      {isMobileSidebarOpen ? (
+      {showSidebar && isMobileSidebarOpen ? (
         <div className="fixed inset-0 z-50 flex lg:hidden" role="dialog" aria-modal="true">
           <button
             type="button"

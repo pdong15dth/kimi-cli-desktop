@@ -27,8 +27,15 @@ export function hasPlatformModifier(
  * Get the API base URL for connecting to the Kimi backend.
  * - Vite dev: uses Vite proxy, so empty string (relative URLs like /api/...)
  * - Production web: same-origin, so empty string
+ * - Desktop (Tauri): reads from window.__KIMI_BACKEND_URL__
  */
 export function getApiBaseUrl(): string {
+  if (typeof window !== "undefined") {
+    const tauriUrl = (window as unknown as Record<string, unknown>).__KIMI_BACKEND_URL__;
+    if (typeof tauriUrl === "string" && tauriUrl) {
+      return tauriUrl;
+    }
+  }
   return "";
 }
 

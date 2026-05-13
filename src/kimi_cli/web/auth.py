@@ -12,7 +12,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import JSONResponse
 from starlette.types import ASGIApp
 
-DEFAULT_ALLOWED_ORIGIN_REGEX = re.compile(r"^https?://(localhost|127\.0\.0\.1)(:\d+)?$")
+DEFAULT_ALLOWED_ORIGIN_REGEX = re.compile(r"^(https?://(localhost|127\.0\.0\.1)|tauri://localhost)(:\d+)?$")
 
 
 def timing_safe_compare(a: str, b: str) -> bool:
