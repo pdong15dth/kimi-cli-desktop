@@ -68,7 +68,7 @@ pub async fn cmd_check_backend(url: String) -> Result<BackendInfo, String> {
 
 /// Open the native file picker and return selected paths.
 #[tauri::command]
-pub async fn pick_files<R: Runtime>(
+pub fn pick_files<R: Runtime>(
     app: AppHandle<R>,
     multiple: bool,
 ) -> Result<Vec<String>, String> {
@@ -122,4 +122,42 @@ pub fn pick_project_folder<R: Runtime>(app: AppHandle<R>) -> Result<Option<Strin
         .blocking_pick_folder()
         .and_then(|f| f.into_path().ok().map(|p| p.to_string_lossy().to_string()));
     Ok(path)
+}
+
+/// Open a file or folder in the system's default application.
+#[tauri::command]
+pub fn open_path(path: String) -> Result<(), String> {
+    let path_obj = std::path::PathBuf::from(&path);
+    if !path_obj.exists() {
+        return Err(format!("Path does not exist: {}", path));
+    }
+
+    #[cfg(target_os = "windows")]
+    {
+        std::process::Command::new("cmd")
+            .arg("/c")
+            .arg("start")
+            .arg("")
+            .arg(&path)
+            .spawn()
+            .map_err(|e| format!("Failed to open path: {}", e))?;
+    }
+
+    #[cfg(target_os = "macos")]
+    {
+        std::process::Command::new("open")
+            .arg(&path)
+            .spawn()
+            .map_err(|e| format!("Failed to open path: {}", e))?;
+    }
+
+    #[cfg(target_os = "linux")]
+    {
+        std::process::Command::new("xdg-open")
+            .arg(&path)
+            .spawn()
+            .map_err(|e| format!("Failed to open path: {}", e))?;
+    }
+
+    Ok(())
 }

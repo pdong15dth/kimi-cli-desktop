@@ -46,6 +46,7 @@ fn main() {
             commands::show_notification,
             commands::get_app_version,
             commands::pick_project_folder,
+            commands::open_path,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

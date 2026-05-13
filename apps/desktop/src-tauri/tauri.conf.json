@@ -4,10 +4,15 @@
   "version": "0.1.0",
   "identifier": "com.moonshotai.kimi-code",
   "build": {
-    "frontendDist": "../../web/dist",
+    "frontendDist": "../dist",
     "devUrl": "http://localhost:5173",
-    "beforeDevCommand": "cd ../../web && npm run dev -- --port 5173",
-    "beforeBuildCommand": "cd ../../web && npm run build"
+    "beforeDevCommand": "start /B kimi web --host 127.0.0.1 --port 5494 --no-open && npm run dev -- --port 5173",
+    "beforeBuildCommand": "npm run build"
+  },
+  "plugins": {
+    "deep-link": {
+      "schemes": ["kimi"]
+    }
   },
   "app": {
     "windows": [
@@ -24,11 +29,6 @@
     "security": {
       "csp": null,
       "capabilities": ["default"]
-    }
-  },
-  "plugins": {
-    "deep-link": {
-      "schemes": ["kimi"]
     }
   },
   "bundle": {

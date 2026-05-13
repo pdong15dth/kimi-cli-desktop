@@ -137,6 +137,53 @@ Run `kimi` with `--mcp-config-file` option to connect to the specified MCP serve
 kimi --mcp-config-file /path/to/mcp.json
 ```
 
+### Desktop App
+
+Kimi Code CLI also has a native desktop application built with [Tauri v2](https://tauri.app).
+
+**Prerequisites:**
+- [Rust](https://rustup.rs/) (latest stable)
+- [Node.js](https://nodejs.org/) 20+
+- `cargo-tauri` CLI v2: `cargo install tauri-cli --version "^2.0"`
+
+**Run the desktop app:**
+
+Option 1 - Single command (auto-starts backend):
+```bash
+# Windows
+cd apps/desktop; .\start.bat
+
+# Linux/macOS
+cd apps/desktop && ./start.sh
+```
+
+Option 2 - Manual (start backend separately):
+```bash
+# Terminal 1 - Start backend
+kimi web --host 127.0.0.1 --port 5494 --no-open
+
+# Terminal 2 - Run desktop app
+cd apps/desktop && cargo tauri dev
+```
+
+**Build for release:**
+```bash
+# Linux/macOS
+cd apps/desktop && cargo tauri build
+
+# Windows (PowerShell)
+cd apps/desktop; cargo tauri build
+```
+
+**Desktop features:**
+- System tray with quick actions
+- Global hotkey `Cmd/Ctrl+Shift+K` to toggle window
+- Native notifications
+- Deep linking via `kimi://` URL scheme
+- Backend auto-discovery
+
+See [apps/desktop/README.md](./apps/desktop/README.md) for more details.
+
 ### More
 
 See more features in the [Documentation](https://moonshotai.github.io/kimi-cli/en/).
